@@ -23,7 +23,6 @@ class Worker(ABC):
     self.pid = p.pid
     self.name = p.name
     print(f"Started process {self.name} with ID {self.pid}")
-    return p
 
   @abstractmethod
   def run(self, **kwargs: Any) -> None:
