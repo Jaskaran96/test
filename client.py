@@ -5,9 +5,8 @@ import signal
 import sys
 import json
 from threading import current_thread
-from csv import reader
 import time
-from constants import LOGFILE, N_WORKERS, DATA_PATH,DATA_PATH2,COUNT
+from constants import LOGFILE, N_WORKERS, DATA_PATH,COUNT
 from worker import WcWorker
 from mrds import MyRedis
 
@@ -20,7 +19,9 @@ def sigterm_handler(signum, frame):
   sys.exit()
 
 if __name__ == "__main__":
+  LOCAL_DIR = "/home/baadalvm/test/output/*"
   # Clear the log file
+  os.mkdir("output")
   open(LOGFILE, 'w').close()
   logging.basicConfig(# filename=LOGFILE,
                       level=logging.DEBUG,
@@ -33,7 +34,6 @@ if __name__ == "__main__":
   rds = MyRedis()
 
   for file in glob.glob(DATA_PATH):
-    print(f"file is {file}")
     rds.add_file(file)
   
   signal.signal(signal.SIGTERM, sigterm_handler)
@@ -46,16 +46,15 @@ if __name__ == "__main__":
   logging.debug('Created all the workers')
 
   while True:
-    print("ENTERNING")
     try:
       pid_killed, status = os.wait()
       logging.info(f"Worker-{pid_killed} died with status {status}!")
     except:
-      print("HERE")
       break
 
   localdic = {}
-  for file in glob.glob(DATA_PATH2):
+  mmx = time.time()
+  for file in glob.glob(LOCAL_DIR):
     f = open(file)
     data = json.load(f)
     print(f"Loading file {file}")
@@ -64,14 +63,14 @@ if __name__ == "__main__":
         localdic[word]+=count
       except:
         localdic[word]=count
-    print(f"DONe file {file}")
-    
-
-  print(len(localdic))
+    print(f"Done file {file}")
+  mmy = time.time()
+  print(f"Completed reading all the JSON files in {mmy-mmx} seconds")
+  print("Starting ingestion into Redis")
   rx = time.time()
   x = 0
   l1={}
-
+  print(len(localdic.keys()))
   for word,count in localdic.items():
     l1[word]=count
     x+=1
@@ -79,16 +78,15 @@ if __name__ == "__main__":
       x=0
       rds.rds.zadd(COUNT,l1)
       l1={}
-  print(f"x is {x}")
   rds.rds.zadd(COUNT,l1)
   ry = time.time()
-  print(f"completed in ${ry-rx}")
-  #[(b'to', 1822200.0), (b'the', 1568100.0), (b'you', 1078555.0), (b'a', 936660.0), (b'I', 921800.0)]
-  print(rds.top(5))
+  print(f"Completed ingestion in Redis in {ry-rx} seconds")
+  # #[(b'to', 1822200.0), (b'the', 1568100.0), (b'you', 1078555.0), (b'a', 936660.0), (b'I', 921800.0)]
   y = time.time()
-  print(f"********************* {y-xff}")
-  for file in glob.glob(DATA_PATH2):
+  print(f"********************* Total work done in : {y-xff} seconds")
+  for file in glob.glob(LOCAL_DIR):
     os.remove(file)
+  os.rmdir("output")
 
-  # for word, c in rds.top(3):
-  #   logging.info(f"{word.decode()}: {c}")
+  for word, c in rds.top(3):
+    logging.info(f"{word.decode()}: {c}")

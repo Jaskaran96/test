@@ -2,17 +2,13 @@ import logging
 from typing import Any
 import multiprocessing
 from base import Worker
-from constants import FNAME,IN
+from constants import FNAME,IN,COUNT
 from mrds import MyRedis
 from redis.client import Redis
 import os
 import json
 import pandas as pd
-stream_name = IN
-group_name = Worker.GROUP
 import time
-
-
 
 class WcWorker(Worker):
   def run(self, **kwargs: Any) -> None:
@@ -22,14 +18,13 @@ class WcWorker(Worker):
     self.pid = os.getpid()
     while True:
       try:
-          resp = self.rds.rds.xreadgroup(group_name,self.process_name,{stream_name : '>'},count=1, block=50)
+          resp = self.rds.rds.xreadgroup(Worker.GROUP,self.process_name,{IN : '>'},count=1, block=50)
           if resp:
               key, messages = resp.pop()
-              # print(messages[0][1][b'tweet'])
               last_id= messages[0][0]
-              data = messages[0][1][b'tweet'].decode()
+              data = messages[0][1][bytes(FNAME)].decode()
               print("      --> ", data)
-              self.rds.rds.xack(stream_name, group_name, last_id)
+              self.rds.rds.xack(IN, Worker.GROUP, last_id)
               self.loadCSV(data)
           else:
               break
@@ -37,7 +32,6 @@ class WcWorker(Worker):
             print("ERROR REDIS CONNECTION: {}".format(e))
     with open(f"output/{self.process_name}", 'w') as convert_file:
       convert_file.write(json.dumps(self.localdic))
-    # self.ingestData()
     logging.info("Exiting")
   
   def loadCSV(self,fileName):
@@ -49,6 +43,7 @@ class WcWorker(Worker):
           except:
             self.localdic[word]=1
     print("************************************************************************************************************************")
+
   
 
 
