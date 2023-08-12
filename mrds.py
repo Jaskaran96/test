@@ -11,7 +11,7 @@ from constants import IN, COUNT, FNAME
 
 class MyRedis:
   def __init__(self):
-    self.rds: Final = Redis(host='localhost', port=6379, password='pass',
+    self.rds: Final = Redis(host='localhost', port=6379,
                        db=0, decode_responses=False)
     self.rds.flushall()
     self.rds.xgroup_create(IN, Worker.GROUP, id="0", mkstream=True)

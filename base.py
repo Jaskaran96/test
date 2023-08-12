@@ -18,12 +18,12 @@ class Worker(ABC):
     self.pid = -1
 
   def create_and_run(self, **kwargs: Any) -> None:
-    self.rds = kwargs['rds']
-    p = Process(target=self.run)
+    p = Process(target=self.run,kwargs=kwargs)
     p.start()
     self.pid = p.pid
     self.name = p.name
-    print(f"Started process ${self.name} with ID ${self.pid}")
+    print(f"Started process {self.name} with ID {self.pid}")
+    return p
 
   @abstractmethod
   def run(self, **kwargs: Any) -> None:
