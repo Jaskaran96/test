@@ -1,10 +1,6 @@
 from __future__ import annotations
-
-import logging
-from typing import Optional, Final
-
+from typing import Final
 from redis.client import Redis
-
 from base import Worker
 from constants import IN, COUNT, FNAME
 
